@@ -11,14 +11,19 @@
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
     <StackPanel Orientation="Vertical">
-        <Button Click="Button_Click_AnalyseAudio" Content="AnalyseAudioAndWriteResultToDisk" Padding="20"   ></Button>
+        <TextBlock Text="FYI: We write result to disk to prevent unnecesary calls to azure service during testing."/>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Text="Analyse audio and write result to disk:" />
+            <Button Click="Button_Click_AnalyseAudio_English" Content="English" Padding="20" />
+            <Button Click="Button_Click_AnalyseAudio_Dutch" Content="Dutch" Padding="20"/>
+        </StackPanel>
         <TextBlock Text="RAW:"/>
         <TextBlock x:Name="MyTbRaw"/>
-        <Button Click="Button_Click_CleanAnalysis" Content="CleanResult" Padding="20"   ></Button>
+        <Button Click="Button_Click_CleanAnalysis" Content="Clean Raw And Write Result To Disk" Padding="20"   ></Button>
         <TextBlock Text="CLEANED:"/>
         <TextBlock x:Name="MyTbCleaned" />
         <TextBlock Text="HIGHLIGHTED:"/>
-        <TextBlock x:Name="MyTbHighlighted"/>        
+        <TextBlock x:Name="MyTbHighlighted"/>
         <StackPanel Orientation="Horizontal">
             <Button Click="Button_Click_Play" Content="Play" Padding="20"   ></Button>
             <Button Click="Button_Click_Pause" Content="Pause" Padding="20"   ></Button>

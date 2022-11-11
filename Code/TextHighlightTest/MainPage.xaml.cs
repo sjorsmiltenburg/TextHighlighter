@@ -25,7 +25,7 @@ namespace TextHighlightTest
     public sealed partial class MainPage : Page
     {
         Uri _wavFileUri = null;
-        string _wavFileLanguage = "en-US";
+        string _wavFileLanguage = String.Empty;
         string _rawResultJsonFilePath = string.Empty;
         string _cleanedResultJsonFilePath = string.Empty;
         MediaPlayer _mediaPlayer;
@@ -37,7 +37,8 @@ namespace TextHighlightTest
             this.InitializeComponent();
 
             StorageFolder localFolder = ApplicationData.Current.LocalFolder;
-            _wavFileUri = new Uri($"ms-appx:///Assets/Sounds/testsample_english.wav");
+            _wavFileUri = new Uri($"ms-appx:///Assets/Sounds/testsample_dutch.wav");
+            _wavFileLanguage = "nl-nl";
 
             _rawResultJsonFilePath = Path.Combine(localFolder.Path, "rawResult.json");
             _cleanedResultJsonFilePath = Path.Combine(localFolder.Path, "cleanedResult.json");
@@ -70,19 +71,10 @@ namespace TextHighlightTest
 
         private string ConcatList(List<MySpeechRecognizeResult> input)
         {
-            //show contents of cleaned on screen
             var sb = new StringBuilder();
-
-            long previousItemDurationInTicks = 0;
-
             foreach (var item in input)
             {
-                //var segmentDurationInTicks = item.DurationInTicks - previousItemDurationInTicks;
-                //var startInTicks = item.OffsetInTicks + previousItemDurationInTicks;
-                //var endInTicks = startInTicks + segmentDurationInTicks;
-                //previousItemDurationInTicks = item.DurationInTicks;
-
-                sb.AppendLine($"{item.Text} -  duration:{new DateTime(item.DurationInTicks).ToString("ss:ff")} start-end: {new DateTime(item.StartInTicks).ToString("ss:ff")} - {new DateTime(item.EndInTicks).ToString("ss:ff")}");
+                sb.AppendLine($"{item.Text} -  start-end: {new DateTime(item.StartInTicks).ToString("ss:ff")} - {new DateTime(item.EndInTicks).ToString("ss:ff")}");
             }
             return sb.ToString();
         }
@@ -94,8 +86,18 @@ namespace TextHighlightTest
             return wavPath;
         }
 
-        private async void Button_Click_AnalyseAudio(object sender, RoutedEventArgs e)
+        private async void Button_Click_AnalyseAudio_English(object sender, RoutedEventArgs e)
         {
+            _wavFileUri = new Uri($"ms-appx:///Assets/Sounds/testsample_english.wav");
+            _wavFileLanguage = "en-US";
+            await new MySpeechRecognizer().Run(GetWavPath(_wavFileUri), _wavFileLanguage, _rawResultJsonFilePath);
+            LoadRaw();
+        }
+
+        private async void Button_Click_AnalyseAudio_Dutch(object sender, RoutedEventArgs e)
+        {
+            _wavFileUri = new Uri($"ms-appx:///Assets/Sounds/testsample_dutch.wav");
+            _wavFileLanguage = "nl-nl";
             await new MySpeechRecognizer().Run(GetWavPath(_wavFileUri), _wavFileLanguage, _rawResultJsonFilePath);
             LoadRaw();
         }
@@ -215,7 +217,6 @@ namespace TextHighlightTest
                 foreach (var item in cleaned)
                 {
                     sb.Append(item.Text);
-
 
                     if (ticks > item.StartInTicks && ticks < item.EndInTicks)
                     {
