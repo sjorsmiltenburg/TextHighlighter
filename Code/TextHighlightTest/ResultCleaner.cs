@@ -20,6 +20,7 @@ namespace TextHighlightTest
                 _rawRecognizedResults = (List<MySpeechRecognizeResult>)jsonDeserializeResult;
             }
 
+            //we work from back to front to get the substring of the section
             while (_rawRecognizedResults.Count > 0)
             {
                 var last = _rawRecognizedResults[_rawRecognizedResults.Count - 1];
@@ -30,19 +31,26 @@ namespace TextHighlightTest
 
                     var cleaned = new MySpeechRecognizeResult()
                     {
-                        Text = lastText,
+                        SectionText = lastText,
                         OffsetInTicks = last.OffsetInTicks,
                         DurationInTicks = last.DurationInTicks,
+
+                        StartCharacterIndex = beforeLast.Text.Length,
+                        EndCharacterIndex = last.Text.Length
                     };
                     _cleanedResults.Insert(0, cleaned);
                 }
                 else
                 {
+                    //first item
                     var cleaned = new MySpeechRecognizeResult()
                     {
-                        Text = last.Text,
+                        SectionText = last.Text,
                         OffsetInTicks = last.OffsetInTicks,
                         DurationInTicks = last.DurationInTicks,
+
+                        StartCharacterIndex = 0,
+                        EndCharacterIndex = last.Text.Length
                     };
 
                     _cleanedResults.Insert(0, cleaned);

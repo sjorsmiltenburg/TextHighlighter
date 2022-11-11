@@ -13,9 +13,9 @@
     <StackPanel Orientation="Vertical">
         <TextBlock Text="FYI: We write result to disk to prevent unnecesary calls to azure service during testing."/>
         <StackPanel Orientation="Horizontal">
-            <TextBlock Text="Analyse audio and write result to disk:" />
-            <Button Click="Button_Click_AnalyseAudio_English" Content="English" Padding="20" />
-            <Button Click="Button_Click_AnalyseAudio_Dutch" Content="Dutch" Padding="20"/>
+            <TextBlock Text="select sample to analyse:" />
+            <ComboBox x:Name="ComboBox_Samples" DisplayMemberPath="Name"></ComboBox>
+            <Button Click="Button_Click_AnalyseAudio" Content="Analyse" Padding="20" />            
         </StackPanel>
         <TextBlock Text="RAW:"/>
         <TextBlock x:Name="MyTbRaw"/>

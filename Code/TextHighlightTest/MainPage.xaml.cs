@@ -15,30 +15,49 @@ using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Documents;
 
-// The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
-
 namespace TextHighlightTest
 {
-    /// <summary>
-    /// An empty page that can be used on its own or navigated to within a Frame.
-    /// </summary>
     public sealed partial class MainPage : Page
     {
-        Uri _wavFileUri = null;
-        string _wavFileLanguage = String.Empty;
         string _rawResultJsonFilePath = string.Empty;
         string _cleanedResultJsonFilePath = string.Empty;
         MediaPlayer _mediaPlayer;
         List<MySpeechRecognizeResult> raw = new List<MySpeechRecognizeResult>();
         List<MySpeechRecognizeResult> cleaned = new List<MySpeechRecognizeResult>();
 
+        List<AudioSample> _samples = new List<AudioSample>();
+
         public MainPage()
         {
             this.InitializeComponent();
 
+            var sample1 = new AudioSample()
+            {
+                Id = 1,
+                WavFileUri = new Uri($"ms-appx:///Assets/Sounds/testsample_dutch.wav"),
+                WavFileLanguage = "nl-nl"
+            };
+            var sample2 = new AudioSample()
+            {
+                Id = 2,
+                WavFileUri = new Uri($"ms-appx:///Assets/Sounds/testsample_english.wav"),
+                WavFileLanguage = "en-US"
+            };
+            var sample3 = new AudioSample()
+            {
+                Id = 3,
+                WavFileUri = new Uri($"ms-appx:///Assets/Sounds/testsample_english_offsettest.wav"),
+                WavFileLanguage = "en-US"
+            };
+            //_samples = new List<AudioSample>() { sample1, sample2, sample3 };
+
+            ComboBox_Samples.Items.Add(sample1);
+            ComboBox_Samples.Items.Add(sample2);
+            ComboBox_Samples.Items.Add(sample3);
+            //.DataContext = _samples;
+            ComboBox_Samples.SelectedIndex = 0;
+
             StorageFolder localFolder = ApplicationData.Current.LocalFolder;
-            _wavFileUri = new Uri($"ms-appx:///Assets/Sounds/testsample_dutch.wav");
-            _wavFileLanguage = "nl-nl";
 
             _rawResultJsonFilePath = Path.Combine(localFolder.Path, "rawResult.json");
             _cleanedResultJsonFilePath = Path.Combine(localFolder.Path, "cleanedResult.json");
@@ -74,31 +93,20 @@ namespace TextHighlightTest
             var sb = new StringBuilder();
             foreach (var item in input)
             {
-                sb.AppendLine($"{item.Text} -  start-end: {new DateTime(item.StartInTicks).ToString("ss:ff")} - {new DateTime(item.EndInTicks).ToString("ss:ff")}");
+                string text = item.Text;
+                if (!string.IsNullOrEmpty(item.SectionText))
+                {
+                    text = item.SectionText;
+                }
+                sb.AppendLine($"{text} -  start-end: {new DateTime(item.StartInTicks).ToString("ss:ff")} - {new DateTime(item.EndInTicks).ToString("ss:ff")}");
             }
             return sb.ToString();
         }
 
-        private string GetWavPath(Uri wavUri)
+        private async void Button_Click_AnalyseAudio(object sender, RoutedEventArgs e)
         {
-            StorageFolder InstallationFolder = Windows.ApplicationModel.Package.Current.InstalledLocation;
-            var wavPath = InstallationFolder.Path + _wavFileUri.AbsolutePath.Replace('/', '\\');
-            return wavPath;
-        }
-
-        private async void Button_Click_AnalyseAudio_English(object sender, RoutedEventArgs e)
-        {
-            _wavFileUri = new Uri($"ms-appx:///Assets/Sounds/testsample_english.wav");
-            _wavFileLanguage = "en-US";
-            await new MySpeechRecognizer().Run(GetWavPath(_wavFileUri), _wavFileLanguage, _rawResultJsonFilePath);
-            LoadRaw();
-        }
-
-        private async void Button_Click_AnalyseAudio_Dutch(object sender, RoutedEventArgs e)
-        {
-            _wavFileUri = new Uri($"ms-appx:///Assets/Sounds/testsample_dutch.wav");
-            _wavFileLanguage = "nl-nl";
-            await new MySpeechRecognizer().Run(GetWavPath(_wavFileUri), _wavFileLanguage, _rawResultJsonFilePath);
+            var sample = (AudioSample)ComboBox_Samples.SelectedItem;
+            await new MySpeechRecognizer().Run(sample.WavFilePath, sample.WavFileLanguage, _rawResultJsonFilePath);
             LoadRaw();
         }
 
@@ -117,6 +125,8 @@ namespace TextHighlightTest
         {
             try
             {
+                MyTbHighlighted.Text = raw.Last().Text; //already show text before first positionchangedEvent fires
+
                 if (!cleaned.Any())
                 {
                     await new MessageDialog("first make sure there is a cleaned result").ShowAsync();
@@ -133,12 +143,13 @@ namespace TextHighlightTest
                 }
                 Pause();
 
-                if (!File.Exists(GetWavPath(_wavFileUri)))
+                var sample = (AudioSample)ComboBox_Samples.SelectedItem;
+                if (!File.Exists(sample.WavFilePath))
                 {
                     new MessageDialog("file does not exist");
                     return;
                 }
-                _mediaPlayer.Source = MediaSource.CreateFromUri(_wavFileUri);
+                _mediaPlayer.Source = MediaSource.CreateFromUri(sample.WavFileUri);
                 _mediaPlayer.Play();
 
             }
@@ -186,7 +197,7 @@ namespace TextHighlightTest
             foreach (var item in input)
             {
                 var segmentDurationInTicks = item.DurationInTicks - previousItemDurationInTicks;
-                var startInTicks = item.OffsetInTicks + previousItemDurationInTicks;
+                var startInTicks = previousItemDurationInTicks; //+item.OffsetInTicks;
                 var endInTicks = startInTicks + segmentDurationInTicks;
                 previousItemDurationInTicks = item.DurationInTicks;
                 item.StartInTicks = startInTicks;
@@ -211,22 +222,51 @@ namespace TextHighlightTest
             _nrOfLabelUpdates++;
             await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
             {
+                var finalRecognizeResult = raw.Last().Text; //the last outputted result is the most accurate
                 MyTbHighlighted.Inlines.Clear();
 
-                var sb = new StringBuilder();
-                foreach (var item in cleaned)
+                var activeRanges = cleaned.Where(item => ticks > item.StartInTicks && ticks < item.EndInTicks);
+                if (activeRanges.Count() == 1)
                 {
-                    sb.Append(item.Text);
-
-                    if (ticks > item.StartInTicks && ticks < item.EndInTicks)
+                    //split text in 3 sections
+                    //- start (not highlighted)                                        
+                    var activeRange = activeRanges.First();
+                    if (activeRange.StartCharacterIndex != 0)
                     {
-                        MyTbHighlighted.Inlines.Add(new Run { Text = item.Text, FontWeight = FontWeights.ExtraBold });
+                        var startSegment = finalRecognizeResult.Substring(0, activeRange.StartCharacterIndex);
+                        MyTbHighlighted.Inlines.Add(new Run { Text = startSegment, FontWeight = FontWeights.Light });
                     }
-                    else
+
+                    //- current section (highlighted)
+                    var activeSegment = finalRecognizeResult.Substring(activeRange.StartCharacterIndex, activeRange.SectionText.Length);
+                    MyTbHighlighted.Inlines.Add(new Run { Text = activeSegment, FontWeight = FontWeights.ExtraBold });
+
+                    //- end (not highlighted)
+                    if (activeRange.EndCharacterIndex != finalRecognizeResult.Length)
                     {
-                        MyTbHighlighted.Inlines.Add(new Run { Text = item.Text, FontWeight = FontWeights.Light });
+                        var endSegment = finalRecognizeResult.Substring(activeRange.EndCharacterIndex);
+                        MyTbHighlighted.Inlines.Add(new Run { Text = endSegment, FontWeight = FontWeights.Light });
                     }
                 }
+                else if (activeRanges.Count() == 0)
+                {
+                    //do nothing
+                }
+                else
+                {
+                    Debugger.Break();
+                }
+                //foreach (var item in cleaned)
+                //{
+                //    if ()
+                //    {
+                //        MyTbHighlighted.Inlines.Add(new Run { Text = item.SectionText, FontWeight = FontWeights.ExtraBold });
+                //    }
+                //    else
+                //    {
+                //        MyTbHighlighted.Inlines.Add(new Run { Text = item.SectionText, FontWeight = FontWeights.Light });
+                //    }
+                //}
 
                 var sb2 = new StringBuilder();
                 sb2.AppendLine($"play position: {new DateTime(ticks).ToString("mm:ss:ff")}");
@@ -244,6 +284,7 @@ namespace TextHighlightTest
                 _mediaPlayer.Pause();
             }
         }
+
     }
 
 }
