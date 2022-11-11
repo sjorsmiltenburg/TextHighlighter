@@ -4,10 +4,12 @@
     {
         public int SampleId { get; set; }
 
-        //fields coming back from the api
+        //raw fields coming back from the api
         public string Text { get; set; } = string.Empty;
         public long OffsetInTicks { get; set; }
         public long DurationInTicks { get; set; }
+
+        //enriched data derived from raw info
 
         //timestamps for this section
         public string SectionText { get; set; }

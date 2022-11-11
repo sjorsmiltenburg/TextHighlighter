@@ -19,11 +19,11 @@ namespace TextHighlightTest
 {
     public sealed partial class MainPage : Page
     {
-        string _rawResultJsonFilePath = string.Empty;
-        string _cleanedResultJsonFilePath = string.Empty;
+        string _recognizeResultsJsonFilePath = string.Empty;
+
         MediaPlayer _mediaPlayer;
-        List<MySpeechRecognizeResult> raw = new List<MySpeechRecognizeResult>();
-        List<MySpeechRecognizeResult> cleaned = new List<MySpeechRecognizeResult>();
+        List<MySpeechRecognizeResult> _recognizeResults = new List<MySpeechRecognizeResult>();
+        //List<MySpeechRecognizeResult> cleaned = new List<MySpeechRecognizeResult>();
 
         List<AudioSample> _samples = new List<AudioSample>();
 
@@ -49,55 +49,57 @@ namespace TextHighlightTest
                 WavFileUri = new Uri($"ms-appx:///Assets/Sounds/testsample_english_offsettest.wav"),
                 WavFileLanguage = "en-US"
             };
-            //_samples = new List<AudioSample>() { sample1, sample2, sample3 };
+            var sample4 = new AudioSample()
+            {
+                Id = 4,
+                WavFileUri = new Uri($"ms-appx:///Assets/Sounds/testsample_english_transcript.wav"),
+                WavFileLanguage = "en-US"
+            };
 
             ComboBox_Samples.Items.Add(sample1);
             ComboBox_Samples.Items.Add(sample2);
             ComboBox_Samples.Items.Add(sample3);
-            //.DataContext = _samples;
+            ComboBox_Samples.Items.Add(sample4);
             ComboBox_Samples.SelectedIndex = 0;
 
             StorageFolder localFolder = ApplicationData.Current.LocalFolder;
 
-            _rawResultJsonFilePath = Path.Combine(localFolder.Path, "rawResult.json");
-            _cleanedResultJsonFilePath = Path.Combine(localFolder.Path, "cleanedResult.json");
+            _recognizeResultsJsonFilePath = Path.Combine(localFolder.Path, "recognizedResults.json");
+            //_cleanedResultJsonFilePath = Path.Combine(localFolder.Path, "cleanedResult.json");
 
-            LoadRaw();
-            LoadCleaned();
+            LoadResults();
         }
 
-        private void LoadRaw()
+        private void LoadResults()
         {
             MyTbRaw.Text = string.Empty;
-            var items = ReadJson(_rawResultJsonFilePath);
+            var items = ReadJson(_recognizeResultsJsonFilePath);
             if (items != null)
             {
-                MyTbRaw.Text = ConcatList(items);
-                raw = items;
+                MyTbRaw.Text = ConcatListForRaw(items);
+                MyTbCleaned.Text = ConcatListForCleaned(items);
+
+                _recognizeResults = items;
             }
         }
 
-        private void LoadCleaned()
-        {
-            MyTbCleaned.Text = string.Empty;
-            var items = ReadJson(_cleanedResultJsonFilePath);
-            if (items != null)
-            {
-                MyTbCleaned.Text = ConcatList(items);
-                cleaned = items;
-            }
-        }
-
-        private string ConcatList(List<MySpeechRecognizeResult> input)
+        private string ConcatListForRaw(List<MySpeechRecognizeResult> input)
         {
             var sb = new StringBuilder();
             foreach (var item in input)
             {
                 string text = item.Text;
-                if (!string.IsNullOrEmpty(item.SectionText))
-                {
-                    text = item.SectionText;
-                }
+                sb.AppendLine($"{text} - duration: {new DateTime(item.DurationInTicks).ToString("ss:ff")} ({item.DurationInTicks} Ticks) - offset {new DateTime(item.OffsetInTicks).ToString("ss:ff")} ({item.OffsetInTicks} Ticks)");
+            }
+            return sb.ToString();
+        }
+
+        private string ConcatListForCleaned(List<MySpeechRecognizeResult> input)
+        {
+            var sb = new StringBuilder();
+            foreach (var item in input)
+            {
+                string text = item.SectionText;
                 sb.AppendLine($"{text} -  start-end: {new DateTime(item.StartInTicks).ToString("ss:ff")} - {new DateTime(item.EndInTicks).ToString("ss:ff")}");
             }
             return sb.ToString();
@@ -106,30 +108,30 @@ namespace TextHighlightTest
         private async void Button_Click_AnalyseAudio(object sender, RoutedEventArgs e)
         {
             var sample = (AudioSample)ComboBox_Samples.SelectedItem;
-            await new MySpeechRecognizer().Run(sample.WavFilePath, sample.WavFileLanguage, _rawResultJsonFilePath);
-            LoadRaw();
+            await new MySpeechRecognizer().Run(sample.WavFilePath, sample.WavFileLanguage, _recognizeResultsJsonFilePath);
+            LoadResults();
         }
 
         private async void Button_Click_CleanAnalysis(object sender, RoutedEventArgs e)
         {
-            if (!raw.Any())
+            if (!_recognizeResults.Any())
             {
                 await new MessageDialog("first make sure there is a raw result").ShowAsync();
                 return;
             }
-            new ResultCleaner().Run(_rawResultJsonFilePath, _cleanedResultJsonFilePath);
-            LoadCleaned();
+            new ResultCleaner().Run(_recognizeResultsJsonFilePath);
+            LoadResults();
         }
 
         private async void Button_Click_Play(object sender, RoutedEventArgs e)
         {
             try
             {
-                MyTbHighlighted.Text = raw.Last().Text; //already show text before first positionchangedEvent fires
+                MyTbHighlighted.Text = _recognizeResults.Last().Text; //already show text before first positionchangedEvent fires
 
-                if (!cleaned.Any())
+                if (!_recognizeResults.Any())
                 {
-                    await new MessageDialog("first make sure there is a cleaned result").ShowAsync();
+                    await new MessageDialog("first make sure there is an analysis").ShowAsync();
                     return;
                 }
                 if (_mediaPlayer == null)
@@ -197,7 +199,7 @@ namespace TextHighlightTest
             foreach (var item in input)
             {
                 var segmentDurationInTicks = item.DurationInTicks - previousItemDurationInTicks;
-                var startInTicks = previousItemDurationInTicks; //+item.OffsetInTicks;
+                var startInTicks = previousItemDurationInTicks + item.OffsetInTicks;
                 var endInTicks = startInTicks + segmentDurationInTicks;
                 previousItemDurationInTicks = item.DurationInTicks;
                 item.StartInTicks = startInTicks;
@@ -222,10 +224,10 @@ namespace TextHighlightTest
             _nrOfLabelUpdates++;
             await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
             {
-                var finalRecognizeResult = raw.Last().Text; //the last outputted result is the most accurate
+                var finalRecognizeResult = _recognizeResults.Last().Text; //the last outputted result is the most accurate
                 MyTbHighlighted.Inlines.Clear();
 
-                var activeRanges = cleaned.Where(item => ticks > item.StartInTicks && ticks < item.EndInTicks);
+                var activeRanges = _recognizeResults.Where(item => ticks > item.StartInTicks && ticks < item.EndInTicks);
                 if (activeRanges.Count() == 1)
                 {
                     //split text in 3 sections

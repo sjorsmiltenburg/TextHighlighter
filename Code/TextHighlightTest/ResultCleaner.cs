@@ -10,9 +10,9 @@ namespace TextHighlightTest
         List<MySpeechRecognizeResult> _rawRecognizedResults = new List<MySpeechRecognizeResult>();
         List<MySpeechRecognizeResult> _cleanedResults = new List<MySpeechRecognizeResult>();
 
-        public void Run(string jsonInputFilePath, string jsonOutputFilePath)
+        public void Run(string jsonFilePath)
         {
-            var rawResultJsonTextFile = File.ReadAllText(jsonInputFilePath);
+            var rawResultJsonTextFile = File.ReadAllText(jsonFilePath);
 
             var jsonDeserializeResult = JsonSerializer.Deserialize(rawResultJsonTextFile, typeof(List<MySpeechRecognizeResult>));
             if (jsonDeserializeResult != null)
@@ -31,10 +31,11 @@ namespace TextHighlightTest
 
                     var cleaned = new MySpeechRecognizeResult()
                     {
-                        SectionText = lastText,
+                        Text = last.Text,
                         OffsetInTicks = last.OffsetInTicks,
                         DurationInTicks = last.DurationInTicks,
 
+                        SectionText = lastText,
                         StartCharacterIndex = beforeLast.Text.Length,
                         EndCharacterIndex = last.Text.Length
                     };
@@ -59,7 +60,7 @@ namespace TextHighlightTest
             }
 
             WriteToConsole();
-            WriteResultToDisk(jsonOutputFilePath);
+            WriteResultToDisk(jsonFilePath);
         }
 
         private void WriteToConsole()
