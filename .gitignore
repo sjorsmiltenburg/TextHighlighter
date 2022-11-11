@@ -79,11 +79,8 @@ obj
 *.nuget.targets
 UpgradeLog.htm
 
-FreeBooks/FreeBooks.Windows/AppPackages/
 _buildTools/tools/NUnit.ConsoleRunner/
 _buildTools/tools/Cake/
-FreeBooks/FreeBooks.WinPhone/AppPackages/
-FreeBooks.WebApi/App_Data/
 
 # Ignore NuGet Packages
 *.nupkg
@@ -103,5 +100,3 @@ project.lock.json
 project.assets.json
 *.nuget.props
 
-#package dir (files >10mb)
-BB.App/BB.App.UWP/AppPackages

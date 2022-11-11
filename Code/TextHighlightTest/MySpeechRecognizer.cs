@@ -39,12 +39,11 @@ namespace TextHighlightTest
             var audioConfig = AudioConfig.FromWavFileInput(wavFilePath);
             var speechRecognizer = new SpeechRecognizer(speechConfig, audioConfig);
 
-            //speechRecognizer.Recognized += SpeechRecognizer_Recognized;
+            speechRecognizer.Recognized += SpeechRecognizer_Recognized;
             speechRecognizer.Recognizing += SpeechRecognizer_Recognizing;
             var speechRecognitionResult = await speechRecognizer.RecognizeOnceAsync();
             OutputSpeechRecognitionResult(speechRecognitionResult);
         }
-
 
         private void SpeechRecognizer_Recognizing(object sender, SpeechRecognitionEventArgs e)
         {
@@ -64,23 +63,24 @@ namespace TextHighlightTest
             }
         }
 
-        //private void SpeechRecognizer_Recognized(object? sender, SpeechRecognitionEventArgs e)
-        //{
-        //    if (e.Result.Reason == ResultReason.RecognizedSpeech)
-        //    {
-        //        var myResult = new MyRawSpeechRecognizeResult()
-        //        {
-        //            Text = e.Result.Text,
-        //            OffsetInTicks = e.Result.OffsetInTicks,
-        //            DurationInTicks = e.Result.Duration.Ticks
-        //        };
-        //        _rawRecognizedResults.Add(myResult);
+        private void SpeechRecognizer_Recognized(object sender, SpeechRecognitionEventArgs e)
+        {
+            //also binding to the Recognized event seems neccesary to capture the last "recognized" prhase.
+            if (e.Result.Reason == ResultReason.RecognizedSpeech)
+            {
+                var myResult = new MySpeechRecognizeResult()
+                {
+                    Text = e.Result.Text,
+                    OffsetInTicks = e.Result.OffsetInTicks,
+                    DurationInTicks = e.Result.Duration.Ticks
+                };
+                _rawRecognizedResults.Add(myResult);
 
-        //        Console.WriteLine(String.Format("--RECOGNIZED: {0}", e.Result.Text));
-        //        Console.WriteLine(String.Format("--Offset in Ticks: {0}", e.Result.OffsetInTicks));
-        //        Console.WriteLine(String.Format("--Duration in Ticks: {0}", e.Result.Duration.Ticks));
-        //    }
-        //}
+                Console.WriteLine(String.Format("--RECOGNIZED: {0}", e.Result.Text));
+                Console.WriteLine(String.Format("--Offset in Ticks: {0}", e.Result.OffsetInTicks));
+                Console.WriteLine(String.Format("--Duration in Ticks: {0}", e.Result.Duration.Ticks));
+            }
+        }
 
         void OutputSpeechRecognitionResult(SpeechRecognitionResult speechRecognitionResult)
         {

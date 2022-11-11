@@ -134,7 +134,9 @@
     </AppxManifest>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Assets\Sounds\testsample_dutch.wav" />
+    <Content Include="Assets\Sounds\testsample_dutch.wav">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Assets\Sounds\testsample_english.wav">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

@@ -179,10 +179,10 @@ namespace TextHighlightTest
             UpdateLabel(sender.Position.Ticks);
         }
 
-        int nrOfLabelUpdates = 0;
+        int _nrOfLabelUpdates = 0;
         private async void UpdateLabel(long ticks)
         {
-            nrOfLabelUpdates++;
+            _nrOfLabelUpdates++;
             await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
             {
                 MyTbHighlighted.Inlines.Clear();
@@ -208,9 +208,8 @@ namespace TextHighlightTest
                     }
                 }
 
-
                 var sb2 = new StringBuilder();
-                sb2.AppendLine($"nr of label updates: {nrOfLabelUpdates}");
+                sb2.AppendLine($"nr of label updates: {_nrOfLabelUpdates}");
                 sb2.AppendLine($"multiplier: {multiplier}");
                 var timespan = TimeSpan.FromTicks(_mediaPlayerDetectedDurationInTicks);
                 sb2.AppendLine($"Media Player Detected Audio Length: {_mediaPlayerDetectedDurationInTicks} (ticks) {timespan.ToString()}");
