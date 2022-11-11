@@ -1,1 +1,0 @@
-C:\_Sources\TestHighlighterTest\Code\TextHighlightTest\TextHighlightTest.csproj;x64
