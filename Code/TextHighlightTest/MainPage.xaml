@@ -24,5 +24,6 @@
             <Button Click="Button_Click_Pause" Content="Pause" Padding="20"   ></Button>
         </StackPanel>
         <TextBlock x:Name="MyTbDebugInfo"/>
+        <TextBlock x:Name="MyTbDebugInfo2"/>
     </StackPanel>
 </Page>

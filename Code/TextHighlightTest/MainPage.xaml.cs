@@ -72,10 +72,17 @@ namespace TextHighlightTest
         {
             //show contents of cleaned on screen
             var sb = new StringBuilder();
+
+            long previousItemDurationInTicks = 0;
+
             foreach (var item in input)
             {
-                var timespan = TimeSpan.FromTicks(item.DurationInTicks + item.OffsetInTicks);
-                sb.AppendLine($"{item.Text} - {item.OffsetInTicks} - {item.DurationInTicks} - {timespan.TotalSeconds}:{timespan.Milliseconds}");
+                //var segmentDurationInTicks = item.DurationInTicks - previousItemDurationInTicks;
+                //var startInTicks = item.OffsetInTicks + previousItemDurationInTicks;
+                //var endInTicks = startInTicks + segmentDurationInTicks;
+                //previousItemDurationInTicks = item.DurationInTicks;
+
+                sb.AppendLine($"{item.Text} -  duration:{new DateTime(item.DurationInTicks).ToString("ss:ff")} start-end: {new DateTime(item.StartInTicks).ToString("ss:ff")} - {new DateTime(item.EndInTicks).ToString("ss:ff")}");
             }
             return sb.ToString();
         }
@@ -163,9 +170,26 @@ namespace TextHighlightTest
             var jsonDeserializeResult = JsonSerializer.Deserialize(rawResultJsonTextFile, typeof(List<MySpeechRecognizeResult>));
             if (jsonDeserializeResult != null)
             {
-                return (List<MySpeechRecognizeResult>)jsonDeserializeResult;
+                var result = (List<MySpeechRecognizeResult>)jsonDeserializeResult;
+                Enrich(result);
+                return result;
             }
             return null;
+        }
+
+        private void Enrich(List<MySpeechRecognizeResult> input)
+        {
+            long previousItemDurationInTicks = 0;
+
+            foreach (var item in input)
+            {
+                var segmentDurationInTicks = item.DurationInTicks - previousItemDurationInTicks;
+                var startInTicks = item.OffsetInTicks + previousItemDurationInTicks;
+                var endInTicks = startInTicks + segmentDurationInTicks;
+                previousItemDurationInTicks = item.DurationInTicks;
+                item.StartInTicks = startInTicks;
+                item.EndInTicks = endInTicks;
+            }
         }
 
         private void _mediaPlayer_MediaEnded(MediaPlayer sender, object args)
@@ -187,18 +211,13 @@ namespace TextHighlightTest
             {
                 MyTbHighlighted.Inlines.Clear();
 
-                var multiplier = _mediaPlayerDetectedDurationInTicks / cleaned.Last().DurationInTicks;
-
-                long totalDuration = 0;
-
                 var sb = new StringBuilder();
                 foreach (var item in cleaned)
                 {
                     sb.Append(item.Text);
-                    totalDuration += item.DurationInTicks * multiplier;
-                    totalDuration += item.OffsetInTicks * multiplier;
 
-                    if (totalDuration < ticks)
+
+                    if (ticks > item.StartInTicks && ticks < item.EndInTicks)
                     {
                         MyTbHighlighted.Inlines.Add(new Run { Text = item.Text, FontWeight = FontWeights.ExtraBold });
                     }
@@ -209,10 +228,10 @@ namespace TextHighlightTest
                 }
 
                 var sb2 = new StringBuilder();
+                sb2.AppendLine($"play position: {new DateTime(ticks).ToString("mm:ss:ff")}");
                 sb2.AppendLine($"nr of label updates: {_nrOfLabelUpdates}");
-                sb2.AppendLine($"multiplier: {multiplier}");
-                var timespan = TimeSpan.FromTicks(_mediaPlayerDetectedDurationInTicks);
-                sb2.AppendLine($"Media Player Detected Audio Length: {_mediaPlayerDetectedDurationInTicks} (ticks) {timespan.ToString()}");
+                var timespan = new DateTime(_mediaPlayerDetectedDurationInTicks);
+                sb2.AppendLine($"Media Player Detected Audio Length: {timespan.ToString("ss:ff")} = {_mediaPlayerDetectedDurationInTicks} Ticks");
                 MyTbDebugInfo.Text = sb2.ToString();
             });
         }

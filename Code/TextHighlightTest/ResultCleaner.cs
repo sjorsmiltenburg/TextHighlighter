@@ -20,17 +20,11 @@ namespace TextHighlightTest
                 _rawRecognizedResults = (List<MySpeechRecognizeResult>)jsonDeserializeResult;
             }
 
-            foreach (var item in _rawRecognizedResults)
-            {
-                Console.WriteLine(item.Text);
-            }
-
             while (_rawRecognizedResults.Count > 0)
             {
                 var last = _rawRecognizedResults[_rawRecognizedResults.Count - 1];
                 if (_rawRecognizedResults.Count > 1)
                 {
-
                     var beforeLast = _rawRecognizedResults[_rawRecognizedResults.Count - 2];
                     var lastText = last.Text.Substring(beforeLast.Text.Length);
 
